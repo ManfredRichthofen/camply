@@ -1,7 +1,3 @@
-"""
-Recreation.gov Implementation for Tours.
-"""
-
 import json
 import logging
 import functools
@@ -42,7 +38,7 @@ class RecreationDotGovPermit(RecreationDotGovBase):
     api_search_fq = "entity_type:permit"
     api_base_path = RecreationBookingConfig.API_BASE_PATH
     facility_type = RIDBConfig.PERMIT_FACILITY_FIELD_QUALIFIER
-    activity_name = None  # Activity Name Should't Be Propogated to Query Parameters
+    activity_name = None  # Activity Name Shouldn't Be Propagated to Query Parameters
     resource_api_path = RIDBConfig.PERMIT_ENTRANCE_API_PATH
     booking_url = "https://www.recreation.gov/permits/{facility_id}/registration/detailed-availability"
 
@@ -139,6 +135,33 @@ class RecreationDotGovPermit(RecreationDotGovBase):
                     ZONES=[],
                 ))
 
+        # Special case for facility ID 233260
+        if facility_id == 233260:
+            url = (
+                f"https://www.recreation.gov/api/permitinyo/"
+                f"{facility_id}/commercialgroupauthorizations"
+            )
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            for record in data:
+                permit_entrance_response = PermitEntranceResponse(
+                    PermitEntranceID=record["authorization_id"],
+                    FacilityID=facility_id,
+                    PermitEntranceName=record["name"],
+                    PermitEntranceDescription=record.get("description", ""),
+                    District='',
+                    Town='',
+                    PermitEntranceAccessible=record.get("accessible", False),
+                    Longitude=record.get("longitude", 0.0),
+                    Latitude=record.get("latitude", 0.0),
+                    CreatedDate=date.today(),
+                    LastUpdatedDate=date.today(),
+                    ATTRIBUTES=[],
+                    ZONES=[],
+                )
+                permits.append(permit_entrance_response)
+
         return permits
 
     def get_internal_campsites(
@@ -165,9 +188,6 @@ class RecreationDotGovPermit(RecreationDotGovBase):
         )
         all_campsite_df.set_index("PermitEntranceID", inplace=True)
 
-        # Special case for Mt. Whitney
-        all_campsite_df[all_campsite_df["FacilityID"] == 233260]["FacilityID"] = 445860
-
         return all_campsite_df
 
     def make_recdotgov_availability_request(
@@ -187,10 +207,6 @@ class RecreationDotGovPermit(RecreationDotGovBase):
         -------
         requests.Response
         """
-
-        # Special case for Mt. Whitney
-        if facility_id == 233260:
-            facility_id = 445860
 
         permit_api_path = self._permit_api_path(facility_id)
 
@@ -245,21 +261,19 @@ class RecreationDotGovPermit(RecreationDotGovBase):
                 permit_entrance_id, "PermitEntranceDescription"
             ]
         except LookupError:
-            loop_name = "Description not available"
-        try:
-            use_type = campsite_metadata.at[permit_entrance_id, "PermitEntranceType"]
-        except LookupError:
-            use_type = "Time zone not available"
+            loop_name = None
+
+        booking_url_vars = {
+            "facility_id": facility_id,
+        }
+        if facility_id == 445860:
+            booking_url_vars.update(entrance_id=permit_entrance_id)
         return {
-            "booking_url": cls.booking_url.format(facility_id=facility_id),  # type: ignore
             "booking_date": booking_date,
-            "booking_end_date": booking_date + timedelta(days=1),
-            "booking_nights": 1,
             "campsite_id": permit_entrance_id,
             "campsite_site_name": permit_entrance_name,
-            "campsite_loop_name": loop_name,
-            "campsite_type": cls.facility_type,
-            "campsite_use_type": use_type,
+            "booking_url": cls.booking_url.format(**booking_url_vars),
+            "loop": loop_name,
         }
 
     @classmethod
@@ -298,10 +312,6 @@ class RecreationDotGovPermit(RecreationDotGovBase):
         total_campsite_availability: List[Optional[AvailableCampsite]]
             Any monthly availabilities
         """
-        # Special case for Mt. Whitney
-        if facility_id == 233260:
-            facility_id = 445860
-
         total_campsite_availability: List[Optional[AvailableCampsite]] = []
         permit_data = PermitMonthlyAvailabilityResponse(**availability)
         for (
