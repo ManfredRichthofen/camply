@@ -211,62 +211,56 @@ class RecreationDotGovPermit(RecreationDotGovBase):
         )
         return response
 
-@classmethod
-def make_campsite_availability_fields(
-    cls,
-    permit_entrance_id: int,
-    facility_id: int,
-    booking_date: datetime.date,
-    campsite_metadata: pd.DataFrame,
-) -> Dict[str, Any]:
-    """
-    Generate a dictionary of fields to be used in a campsite container.
+    @classmethod
+    def make_campsite_availability_fields(
+        cls,
+        permit_entrance_id: int,
+        facility_id: int,
+        booking_date: datetime.date,
+        campsite_metadata: pd.DataFrame,
+    ) -> Dict[str, Any]:
+        """
+        Generate a dictionary of fields to be used in a campsite container.
 
-    Parameters
-    ----------
-    permit_entrance_id: int
-    facility_id: int
-    booking_date: datetime.date
-    campsite_metadata: pd.DataFrame
+        Parameters
+        ----------
+        permit_entrance_id: int
+        booking_url_vars: Dict[str, str]
+        booking_date: datetime.date
+        campsite_metadata: pd.DataFrame
 
-    Returns
-    -------
-    Dict[str, Any]
-    """
-    booking_date = datetime.combine(booking_date, time.min)
-    try:
-        permit_entrance_name = campsite_metadata.at[
-            permit_entrance_id, "PermitEntranceName"
-        ]
-    except LookupError:
-        permit_entrance_name = f"Permit Entrance #{permit_entrance_id}"
-    try:
-        loop_name = campsite_metadata.at[
-            permit_entrance_id, "PermitEntranceDescription"
-        ]
-    except LookupError:
-        loop_name = "Description not available"
-    try:
-        use_type = campsite_metadata.at[permit_entrance_id, "PermitEntranceType"]
-    except LookupError:
-        use_type = "Time zone not available"
-
-    # Check for "exit only" type and handle it
-    if use_type.lower() == "exit only":
-        use_type = "Permitted"
-
-    return {
-        "booking_url": cls.booking_url.format(facility_id=facility_id),  # type: ignore
-        "booking_date": booking_date,
-        "booking_end_date": booking_date + timedelta(days=1),
-        "booking_nights": 1,
-        "campsite_id": permit_entrance_id,
-        "campsite_site_name": permit_entrance_name,
-        "campsite_loop_name": loop_name,
-        "campsite_type": cls.facility_type,
-        "campsite_use_type": use_type,
-    }
-
+        Returns
+        -------
+        Dict[str, Any]
+        """
+        booking_date = datetime.combine(booking_date, time.min)
+        try:
+            permit_entrance_name = campsite_metadata.at[
+                permit_entrance_id, "PermitEntranceName"
+            ]
+        except LookupError:
+            permit_entrance_name = f"Permit Entrance #{permit_entrance_id}"
+        try:
+            loop_name = campsite_metadata.at[
+                permit_entrance_id, "PermitEntranceDescription"
+            ]
+        except LookupError:
+            loop_name = "Description not available"
+        try:
+            use_type = campsite_metadata.at[permit_entrance_id, "PermitEntranceType"]
+        except LookupError:
+            use_type = "Time zone not available"
+        return {
+            "booking_url": cls.booking_url.format(facility_id=facility_id),  # type: ignore
+            "booking_date": booking_date,
+            "booking_end_date": booking_date + timedelta(days=1),
+            "booking_nights": 1,
+            "campsite_id": permit_entrance_id,
+            "campsite_site_name": permit_entrance_name,
+            "campsite_loop_name": loop_name,
+            "campsite_type": cls.facility_type,
+            "campsite_use_type": use_type,
+        }
 
     @classmethod
     def process_campsite_availability(
