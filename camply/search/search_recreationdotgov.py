@@ -352,47 +352,48 @@ class SearchRecreationDotGovBase(BaseCampingSearch, ABC):
         ].copy()
         return original_campsites
 
-    def _get_listable_campsites(
-        self, campsites: Union[List[RecDotGovCampsite], List[RecDotGovSearchResult]]
-    ) -> List[ListedCampsite]:
-        """
-        Get Listable Campsites
+def _get_listable_campsites(
+    self, campsites: Union[List[RecDotGovCampsite], List[RecDotGovSearchResult], List[PermitEntranceResponse]]
+) -> List[ListedCampsite]:
+    """
+    Get Listable Campsites
 
-        Returns
-        -------
-        List[ListedCampsite]
-        """
-        if isinstance(campsites[0], RecDotGovCampsite):
-            return [
-                ListedCampsite(
-                    id=item.campsite_id,
-                    facility_id=item.asset_id,
-                    name=item.name,
-                )
-                for item in campsites
-            ]
-        elif isinstance(campsites[0], RecDotGovSearchResult):
-            return [
-                ListedCampsite(
-                    id=item.entity_id,
-                    facility_id=item.parent_id,
-                    name=item.name,
-                )
-                for item in campsites
-            ]
-        elif isinstance(campsites[0], PermitEntranceResponse):
-            return [
-                ListedCampsite(
-                    id=item.PermitEntranceID,
-                    facility_id=item.FacilityID,
-                    name=item.PermitEntranceName,
-                )
-                for item in campsites
-            ]
-        else:
-            raise NotImplementedError(
-                f"Cannot get listable campsites from type {type(campsites[0])}"
+    Returns
+    -------
+    List[ListedCampsite]
+    """
+    if isinstance(campsites[0], RecDotGovCampsite):
+        return [
+            ListedCampsite(
+                id=item.campsite_id,
+                facility_id=item.asset_id,
+                name=item.name,
             )
+            for item in campsites
+        ]
+    elif isinstance(campsites[0], RecDotGovSearchResult):
+        return [
+            ListedCampsite(
+                id=item.entity_id,
+                facility_id=item.parent_id,
+                name=item.name,
+            )
+            for item in campsites
+        ]
+    elif isinstance(campsites[0], PermitEntranceResponse):
+        return [
+            ListedCampsite(
+                id=item.PermitEntranceID,
+                facility_id=item.FacilityID,
+                name=item.PermitEntranceName,
+            )
+            for item in campsites
+        ]
+    else:
+        raise NotImplementedError(
+            f"Cannot get listable campsites from type {type(campsites[0])}"
+        )
+
 
     def list_campsite_units(self) -> List[ListedCampsite]:
         """
